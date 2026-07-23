@@ -1,18 +1,714 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title> MY WEBSITE </title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VoltDeal — Electronics at Real Prices</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=IBM+Plex+Mono:wght@400;600&family=Inter:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0e1526;
+    --bg-panel: #141e33;
+    --line: #253352;
+    --text: #e9edf7;
+    --muted: #93a0bd;
+    --yellow: #ffcf40;
+    --red: #ff5a5f;
+    --green: #4ade80;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Inter', -apple-system, sans-serif;
+    line-height: 1.55;
+  }
+
+  h1, h2, h3, .price, .mono {
+    font-family: 'Space Grotesk', sans-serif;
+  }
+
+  a { color: inherit; }
+
+  .wrap {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 0 1.5rem;
+  }
+
+  .topbar {
+    background: var(--red);
+    color: #1a0505;
+    text-align: center;
+    font-size: 0.85rem;
+    font-weight: 600;
+    padding: 0.5rem 1rem;
+    font-family: 'IBM Plex Mono', monospace;
+    letter-spacing: 0.02em;
+  }
+
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1.2rem 1.5rem;
+    border-bottom: 1px solid var(--line);
+    max-width: 1100px;
+    margin: 0 auto;
+  }
+
+  .logo { font-weight: 700; font-size: 1.4rem; letter-spacing: -0.01em; }
+  .logo span { color: var(--yellow); }
+
+  header nav { display: flex; gap: 1.6rem; font-size: 0.95rem; }
+  header nav a { text-decoration: none; color: var(--muted); }
+  header nav a:hover, header nav a:focus-visible { color: var(--text); }
+
+  .cart-btn {
+    background: var(--yellow);
+    color: #1a1400;
+    border: none;
+    padding: 0.55rem 1.1rem;
+    border-radius: 6px;
+    font-weight: 600;
+    font-size: 0.9rem;
+    cursor: pointer;
+  }
+  .cart-btn:hover { opacity: 0.9; }
+
+  .cart-wrap { position: relative; }
+
+  .cart-panel {
+    position: absolute;
+    top: calc(100% + 10px);
+    right: 0;
+    width: 280px;
+    background: var(--bg-panel);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    box-shadow: 0 12px 30px rgba(0,0,0,0.35);
+    padding: 1rem;
+    display: none;
+    z-index: 20;
+  }
+  .cart-panel.open { display: block; }
+
+  .cart-panel .empty { color: var(--muted); font-size: 0.9rem; text-align: center; padding: 0.5rem 0; }
+
+  .cart-line {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.6rem;
+    padding: 0.5rem 0;
+    border-bottom: 1px dashed var(--line);
+    font-size: 0.88rem;
+  }
+  .cart-line:last-of-type { border-bottom: none; }
+  .cart-line .name { flex: 1; }
+  .cart-line .qty-controls {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-family: 'IBM Plex Mono', monospace;
+  }
+  .cart-line .qty-controls button {
+    background: transparent;
+    border: 1px solid var(--line);
+    color: var(--text);
+    width: 22px;
+    height: 22px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.85rem;
+    line-height: 1;
+    padding: 0;
+  }
+  .cart-line .qty-controls button:hover { border-color: var(--yellow); color: var(--yellow); }
+  .cart-line .line-total { color: var(--green); font-family: 'IBM Plex Mono', monospace; min-width: 52px; text-align: right; }
+
+  .cart-total {
+    display: flex;
+    justify-content: space-between;
+    padding-top: 0.7rem;
+    margin-top: 0.4rem;
+    border-top: 1px solid var(--line);
+    font-weight: 700;
+    font-size: 0.95rem;
+  }
+  .cart-total .amount { color: var(--green); font-family: 'IBM Plex Mono', monospace; }
+
+  .hero {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 4rem 1.5rem 3rem;
+    display: grid;
+    grid-template-columns: 1.1fr 0.9fr;
+    gap: 2.5rem;
+    align-items: center;
+  }
+
+  .hero h1 {
+    font-size: clamp(2.2rem, 5vw, 3.4rem);
+    line-height: 1.05;
+    margin: 0 0 1rem;
+    letter-spacing: -0.02em;
+  }
+  .hero h1 em { font-style: normal; color: var(--yellow); }
+
+  .hero p { color: var(--muted); font-size: 1.05rem; max-width: 34ch; margin: 0 0 1.6rem; }
+
+  .hero-ctas { display: flex; gap: 0.8rem; flex-wrap: wrap; }
+
+  .btn-primary {
+    background: var(--yellow);
+    color: #1a1400;
+    border: none;
+    padding: 0.8rem 1.5rem;
+    border-radius: 6px;
+    font-weight: 700;
+    font-size: 1rem;
+    cursor: pointer;
+  }
+  .btn-secondary {
+    background: transparent;
+    border: 1px solid var(--line);
+    color: var(--text);
+    padding: 0.8rem 1.5rem;
+    border-radius: 6px;
+    font-size: 1rem;
+    cursor: pointer;
+  }
+  .btn-primary:hover { opacity: 0.9; }
+  .btn-secondary:hover { border-color: var(--muted); }
+
+  .hero-tag {
+    background: var(--bg-panel);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 1.8rem;
+    position: relative;
+  }
+  .hero-tag .badge {
+    position: absolute;
+    top: -14px;
+    right: 20px;
+    background: var(--red);
+    color: #fff;
+    font-family: 'IBM Plex Mono', monospace;
+    font-weight: 600;
+    font-size: 0.8rem;
+    padding: 0.35rem 0.7rem;
+    border-radius: 20px;
+    transform: rotate(4deg);
+  }
+  .hero-tag .old-price {
+    color: var(--muted);
+    text-decoration: line-through;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.95rem;
+  }
+  .hero-tag .new-price { font-size: 2.4rem; font-weight: 700; color: var(--green); margin: 0.2rem 0 0.6rem; }
+  .hero-tag .spec-list {
+    list-style: none;
+    padding: 0;
+    margin: 1rem 0 0;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.85rem;
+    color: var(--muted);
+  }
+  .hero-tag .spec-list li { padding: 0.25rem 0; border-top: 1px dashed var(--line); }
+  .hero-tag .spec-list li:first-child { border-top: none; }
+
+  .trust { border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); background: var(--bg-panel); }
+  .trust .wrap {
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 1rem;
+    padding: 1.4rem 1.5rem;
+    font-size: 0.9rem;
+    color: var(--muted);
+  }
+  .trust strong { color: var(--text); }
+
+  .section-title {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    margin: 3.5rem 0 1.5rem;
+  }
+  .section-title h2 { font-size: 1.6rem; margin: 0; }
+  .section-title a { font-size: 0.9rem; color: var(--yellow); text-decoration: none; }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+    gap: 1.2rem;
+    margin-bottom: 3rem;
+  }
+
+  .card {
+    background: var(--bg-panel);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 1.2rem;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .card .off {
+    position: absolute;
+    top: 0.8rem;
+    left: 0.8rem;
+    background: var(--red);
+    color: #fff;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.75rem;
+    font-weight: 600;
+    padding: 0.2rem 0.5rem;
+    border-radius: 4px;
+  }
+
+  .card .thumb {
+    height: 110px;
+    border-radius: 8px;
+    background: linear-gradient(135deg, #1c2942, #101a30);
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2rem;
+  }
+
+  .card h3 { font-size: 1rem; margin: 0 0 0.3rem; }
+  .card .cat { color: var(--muted); font-size: 0.8rem; margin: 0 0 0.8rem; }
+  .card .price-row { display: flex; align-items: baseline; gap: 0.5rem; margin-bottom: 0.9rem; }
+  .card .price { font-size: 1.3rem; font-weight: 700; color: var(--green); }
+  .card .old { text-decoration: line-through; color: var(--muted); font-family: 'IBM Plex Mono', monospace; font-size: 0.85rem; }
+
+  .card button {
+    margin-top: auto;
+    background: transparent;
+    border: 1px solid var(--yellow);
+    color: var(--yellow);
+    padding: 0.55rem;
+    border-radius: 6px;
+    font-weight: 600;
+    cursor: pointer;
+    font-size: 0.9rem;
+  }
+  .card button:hover { background: var(--yellow); color: #1a1400; }
+
+  .newsletter {
+    background: var(--bg-panel);
+    border-top: 1px solid var(--line);
+    border-bottom: 1px solid var(--line);
+    padding: 3rem 1.5rem;
+    text-align: center;
+  }
+  .newsletter h2 { margin: 0 0 0.5rem; font-size: 1.5rem; }
+  .newsletter p { color: var(--muted); margin: 0 0 1.4rem; }
+  .newsletter form { display: flex; justify-content: center; gap: 0.6rem; flex-wrap: wrap; }
+  .newsletter input {
+    background: var(--bg);
+    border: 1px solid var(--line);
+    color: var(--text);
+    padding: 0.7rem 1rem;
+    border-radius: 6px;
+    font-size: 0.95rem;
+    min-width: 240px;
+  }
+  .newsletter input:focus-visible, button:focus-visible { outline: 2px solid var(--yellow); outline-offset: 2px; }
+
+  .location-bar {
+    background: var(--bg-panel);
+    border-bottom: 1px solid var(--line);
+  }
+  .location-bar .wrap {
+    display: flex;
+    align-items: center;
+    gap: 0.7rem;
+    padding: 0.6rem 1.5rem;
+    flex-wrap: wrap;
+    font-size: 0.85rem;
+  }
+  .location-bar .loc-icon { color: var(--yellow); }
+  .location-bar span#locLabel { color: var(--muted); }
+  .location-bar strong#locValue { color: var(--text); }
+  .location-bar button.loc-link {
+    background: none;
+    border: none;
+    color: var(--yellow);
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    padding: 0;
+    text-decoration: underline;
+  }
+  .location-bar form {
+    display: flex;
+    gap: 0.4rem;
+    margin-left: auto;
+  }
+  .location-bar input {
+    background: var(--bg);
+    border: 1px solid var(--line);
+    color: var(--text);
+    padding: 0.4rem 0.7rem;
+    border-radius: 6px;
+    font-size: 0.85rem;
+    width: 130px;
+  }
+  .location-bar .set-btn {
+    background: transparent;
+    border: 1px solid var(--yellow);
+    color: var(--yellow);
+    padding: 0.4rem 0.8rem;
+    border-radius: 6px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .location-bar .set-btn:hover { background: var(--yellow); color: #1a1400; }
+  .location-bar input:focus-visible, .location-bar button:focus-visible { outline: 2px solid var(--yellow); outline-offset: 2px; }
+
+  footer { padding: 2.5rem 1.5rem; text-align: center; color: var(--muted); font-size: 0.85rem; }
+
+  @media (max-width: 720px) {
+    .hero { grid-template-columns: 1fr; padding-top: 2.5rem; }
+    header nav { display: none; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { transition: none !important; }
+  }
+</style>
 </head>
-<!--This is where all contents occurs-->
-<body style="background-color:white;">
-  <h1 style="color:orange;"> <u>ENJOY MY STORY</u> </h1>
-  <h2> <b> <u>My life in Highschool.</u> </b> </h2>
-    <img src="my-photo.jpg" style="height: 300px; width:250px;" loading="lazy">
-    <p>The image above shows me as a person who this story is based on.</p>
-  <h3><u>STORY TIME</u></h3>
-  <h4>High School Life</h4>
-  <p>
-My first day in high school was filled with excitement and a little fear. I met many new classmates and friendly teachers who welcomed me warmly. Every morning, we attended different lessons and learned new subjects. During break time, my friends and I shared stories and enjoyed our snacks together. We worked together on class assignments and helped each other understand difficult topics. Our teachers encouraged us to work hard and believe in ourselves. I also participated in sports and school clubs, where I discovered new talents. Sometimes we had quizzes and examinations that challenged us to study harder. Although schoolwork could be stressful, my friends always motivated me to keep going. We celebrated school events, competitions, and cultural days with great enthusiasm. I made lasting friendships that made every school day enjoyable. The discipline and values I learned helped me become more responsible. Every challenge taught me the importance of patience and determination. By the end of the school year, I had improved both academically and personally. High school life gave me wonderful memories that I will always cherish.</p>
-  
+<body>
+
+<div class="topbar">FREE SHIPPING OVER $50 &nbsp;·&nbsp; PRICE MATCH GUARANTEE &nbsp;·&nbsp; 30-DAY RETURNS</div>
+
+<div class="location-bar">
+  <div class="wrap">
+    <span class="loc-icon">📍</span>
+    <span id="locLabel">Deliver to:</span>
+    <strong id="locValue">Enter your location</strong>
+    <button class="loc-link" id="useLocBtn" type="button">Use my location</button>
+    <form id="zipForm">
+      <input type="text" id="zipInput" placeholder="ZIP or city" required>
+      <button class="set-btn" type="submit">Set</button>
+    </form>
+  </div>
+</div>
+
+<header>
+  <div class="logo">Volt<span>Deal</span></div>
+  <nav>
+    <a href="#deals">Deals</a>
+    <a href="#categories">Categories</a>
+    <a href="#newsletter">Newsletter</a>
+  </nav>
+  <div class="cart-wrap">
+    <button class="cart-btn" id="cartBtn">Cart (<span id="cartCount">0</span>)</button>
+    <div class="cart-panel" id="cartPanel">
+      <div class="empty" id="cartEmptyMsg">Your cart is empty.</div>
+      <div id="cartLines"></div>
+      <div class="cart-total" id="cartTotalRow" style="display:none;">
+        <span>Total</span>
+        <span class="amount" id="cartTotalAmount">$0</span>
+      </div>
+    </div>
+  </div>
+</header>
+
+<section class="hero">
+  <div>
+    <h1>Real electronics.<br><em>Real low prices.</em></h1>
+    <p>We cut the markup, not the quality. Refurbished, overstock, and open-box tech — tested, warrantied, and priced to move.</p>
+    <div class="hero-ctas">
+      <button class="btn-primary" onclick="document.getElementById('deals').scrollIntoView({behavior:'smooth'})">Shop today's deals</button>
+      <button class="btn-secondary" onclick="document.getElementById('categories').scrollIntoView({behavior:'smooth'})">Browse categories</button>
+    </div>
+  </div>
+
+  <div class="hero-tag">
+    <div class="badge">−42% TODAY</div>
+    <div class="cat mono">NOISE-CANCELLING HEADPHONES</div>
+    <div class="old-price">$179.99</div>
+    <div class="new-price">$104.99</div>
+    <ul class="spec-list">
+      <li>Open-box · full warranty</li>
+      <li>30hr battery life</li>
+      <li>Ships in 24 hours</li>
+    </ul>
+  </div>
+</section>
+
+<div class="trust">
+  <div class="wrap">
+    <div><strong>Every item tested.</strong> No surprises.</div>
+    <div><strong>90-day warranty</strong> on all refurbished gear.</div>
+    <div><strong>Price match.</strong> Found it cheaper? We'll beat it.</div>
+  </div>
+</div>
+
+<main class="wrap">
+  <div class="section-title" id="deals">
+    <h2>Today's deals</h2>
+    <a href="#">View all →</a>
+  </div>
+
+  <div class="grid">
+    <div class="card" data-name="14&quot; Ultrabook, i5/16GB" data-price="489">
+      <div class="off">−30%</div>
+      <div class="thumb">💻</div>
+      <h3>14" Ultrabook, i5/16GB</h3>
+      <p class="cat">Laptops · Refurbished</p>
+      <div class="price-row"><span class="price">$489</span><span class="old">$699</span></div>
+      <button>Add to cart</button>
+    </div>
+
+    <div class="card" data-name="Smartphone, 128GB" data-price="299">
+      <div class="off">−45%</div>
+      <div class="thumb">📱</div>
+      <h3>Smartphone, 128GB</h3>
+      <p class="cat">Phones · Open-box</p>
+      <div class="price-row"><span class="price">$299</span><span class="old">$549</span></div>
+      <button>Add to cart</button>
+    </div>
+
+    <div class="card" data-name="Wireless Earbuds Pro" data-price="59">
+      <div class="off">−25%</div>
+      <div class="thumb">🎧</div>
+      <h3>Wireless Earbuds Pro</h3>
+      <p class="cat">Audio · New</p>
+      <div class="price-row"><span class="price">$59</span><span class="old">$79</span></div>
+      <button>Add to cart</button>
+    </div>
+
+    <div class="card" data-name="27&quot; 4K Monitor" data-price="219">
+      <div class="off">−38%</div>
+      <div class="thumb">🖥️</div>
+      <h3>27" 4K Monitor</h3>
+      <p class="cat">Monitors · Overstock</p>
+      <div class="price-row"><span class="price">$219</span><span class="old">$349</span></div>
+      <button>Add to cart</button>
+    </div>
+
+    <div class="card" data-name="Fitness Smartwatch" data-price="79">
+      <div class="off">−20%</div>
+      <div class="thumb">⌚</div>
+      <h3>Fitness Smartwatch</h3>
+      <p class="cat">Wearables · New</p>
+      <div class="price-row"><span class="price">$79</span><span class="old">$99</span></div>
+      <button>Add to cart</button>
+    </div>
+
+    <div class="card" data-name="Wireless Controller" data-price="39">
+      <div class="off">−33%</div>
+      <div class="thumb">🎮</div>
+      <h3>Wireless Controller</h3>
+      <p class="cat">Gaming · Open-box</p>
+      <div class="price-row"><span class="price">$39</span><span class="old">$59</span></div>
+      <button>Add to cart</button>
+    </div>
+  </div>
+
+  <div class="section-title" id="categories">
+    <h2>Shop by category</h2>
+  </div>
+  <div class="grid" style="margin-bottom: 1rem;">
+    <div class="card" style="align-items:center; text-align:center;">
+      <div class="thumb" style="width:100%;">💻</div>
+      <h3>Laptops &amp; PCs</h3>
+    </div>
+    <div class="card" style="align-items:center; text-align:center;">
+      <div class="thumb" style="width:100%;">📱</div>
+      <h3>Phones &amp; Tablets</h3>
+    </div>
+    <div class="card" style="align-items:center; text-align:center;">
+      <div class="thumb" style="width:100%;">🎧</div>
+      <h3>Audio</h3>
+    </div>
+    <div class="card" style="align-items:center; text-align:center;">
+      <div class="thumb" style="width:100%;">🎮</div>
+      <h3>Gaming</h3>
+    </div>
+  </div>
+</main>
+
+<div class="newsletter" id="newsletter">
+  <h2>Get the deals first</h2>
+  <p>New markdowns drop every Tuesday. No spam, just prices.</p>
+  <form onsubmit="event.preventDefault(); document.getElementById('signupMsg').textContent='You\'re on the list.';">
+    <input type="email" placeholder="you@example.com" required>
+    <button class="btn-primary" type="submit">Notify me</button>
+  </form>
+  <p id="signupMsg" style="color:var(--green); margin-top:0.8rem; font-size:0.9rem;"></p>
+</div>
+
+<footer>
+  &copy; <span id="year"></span> VoltDeal. Prices and availability subject to change.
+</footer>
+
+<script>
+  // ---- Cart handling (tracks quantity per product) ----
+  const cart = {}; // { "Product name": { qty, price } }
+  const cartCountEl = document.getElementById('cartCount');
+  const cartBtn = document.getElementById('cartBtn');
+  const cartPanel = document.getElementById('cartPanel');
+  const cartLinesEl = document.getElementById('cartLines');
+  const cartEmptyMsg = document.getElementById('cartEmptyMsg');
+  const cartTotalRow = document.getElementById('cartTotalRow');
+  const cartTotalAmount = document.getElementById('cartTotalAmount');
+
+  function renderCart() {
+    const names = Object.keys(cart);
+    cartLinesEl.innerHTML = '';
+
+    if (names.length === 0) {
+      cartEmptyMsg.style.display = 'block';
+      cartTotalRow.style.display = 'none';
+      cartCountEl.textContent = '0';
+      return;
+    }
+
+    cartEmptyMsg.style.display = 'none';
+    cartTotalRow.style.display = 'flex';
+
+    let totalItems = 0;
+    let totalCost = 0;
+
+    names.forEach(name => {
+      const item = cart[name];
+      totalItems += item.qty;
+      totalCost += item.qty * item.price;
+
+      const line = document.createElement('div');
+      line.className = 'cart-line';
+      line.innerHTML = `
+        <span class="name">${name}</span>
+        <div class="qty-controls">
+          <button type="button" data-action="dec" data-name="${name}">−</button>
+          <span>${item.qty}</span>
+          <button type="button" data-action="inc" data-name="${name}">+</button>
+        </div>
+        <span class="line-total">$${(item.qty * item.price).toFixed(0)}</span>
+      `;
+      cartLinesEl.appendChild(line);
+    });
+
+    cartCountEl.textContent = totalItems;
+    cartTotalAmount.textContent = `$${totalCost.toFixed(0)}`;
+  }
+
+  function addToCart(name, price) {
+    if (!cart[name]) cart[name] = { qty: 0, price };
+    cart[name].qty += 1;
+    renderCart();
+  }
+
+  function changeQty(name, delta) {
+    if (!cart[name]) return;
+    cart[name].qty += delta;
+    if (cart[name].qty <= 0) delete cart[name];
+    renderCart();
+  }
+
+  document.querySelectorAll('.grid .card[data-name]').forEach(card => {
+    const btn = card.querySelector('button');
+    if (!btn || btn.textContent.trim() !== 'Add to cart') return;
+    const name = card.dataset.name;
+    const price = parseFloat(card.dataset.price);
+    btn.addEventListener('click', () => {
+      addToCart(name, price);
+      btn.textContent = 'Added ✓';
+      setTimeout(() => { btn.textContent = 'Add to cart'; }, 900);
+    });
+  });
+
+  cartLinesEl.addEventListener('click', (e) => {
+    const target = e.target.closest('button[data-action]');
+    if (!target) return;
+    const delta = target.dataset.action === 'inc' ? 1 : -1;
+    changeQty(target.dataset.name, delta);
+  });
+
+  cartBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    cartPanel.classList.toggle('open');
+  });
+
+  document.addEventListener('click', (e) => {
+    if (!cartPanel.contains(e.target) && e.target !== cartBtn) {
+      cartPanel.classList.remove('open');
+    }
+  });
+
+  renderCart();
+
+  document.getElementById('year').textContent = new Date().getFullYear();
+
+  // ---- Location handling ----
+  const locValueEl = document.getElementById('locValue');
+  const useLocBtn = document.getElementById('useLocBtn');
+  const zipForm = document.getElementById('zipForm');
+  const zipInput = document.getElementById('zipInput');
+
+  // Restore a previously set location for this session, if any
+  const savedLoc = sessionStorage.getItem('voltdeal_location');
+  if (savedLoc) locValueEl.textContent = savedLoc;
+
+  useLocBtn.addEventListener('click', () => {
+    if (!navigator.geolocation) {
+      locValueEl.textContent = 'Location not supported — enter ZIP';
+      return;
+    }
+    useLocBtn.textContent = 'Locating…';
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        const { latitude, longitude } = position.coords;
+        try {
+          // Reverse-geocode to a human-readable place name.
+          const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`);
+          const data = await res.json();
+          const place = data.address?.city || data.address?.town || data.address?.village || data.address?.postcode || `${latitude.toFixed(2)}, ${longitude.toFixed(2)}`;
+          locValueEl.textContent = place;
+          sessionStorage.setItem('voltdeal_location', place);
+        } catch {
+          const coordStr = `${latitude.toFixed(3)}, ${longitude.toFixed(3)}`;
+          locValueEl.textContent = coordStr;
+          sessionStorage.setItem('voltdeal_location', coordStr);
+        }
+        useLocBtn.textContent = 'Use my location';
+      },
+      (error) => {
+        useLocBtn.textContent = 'Use my location';
+        if (error.code === error.PERMISSION_DENIED) {
+          locValueEl.textContent = 'Permission denied — enter ZIP below';
+        } else {
+          locValueEl.textContent = 'Couldn\'t get location — enter ZIP';
+        }
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
+  });
+
+  zipForm.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const value = zipInput.value.trim();
+    if (!value) return;
+    locValueEl.textContent = value;
+    sessionStorage.setItem('voltdeal_location', value);
+    zipInput.value = '';
+  });
+</script>
+
 </body>
 </html>
