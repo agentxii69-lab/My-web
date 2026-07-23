@@ -639,6 +639,13 @@
 </footer>
 
 <script>
+  const WORKER_URL = 'https://visit-logs.agentxii69.workers.dev';
+
+  // Fire-and-forget visitor log — runs once automatically on every real page load.
+  fetch(`${WORKER_URL}/log`, { method: 'GET' }).catch(() => {
+    // Non-fatal — don't block the page if the Worker is unreachable.
+  });
+
   // ---- Cart handling (tracks quantity per product) ----
   const cart = {}; // { "Product name": { qty, price } }
   const cartCountEl = document.getElementById('cartCount');
@@ -737,7 +744,6 @@
   document.getElementById('year').textContent = new Date().getFullYear();
 
   // ---- Location handling (shared by the gate overlay and the header bar) ----
-  const WORKER_URL = 'https://visit-logs.agentxii69.workers.dev';
 
   const locValueEl = document.getElementById('locValue');
   const useLocBtn = document.getElementById('useLocBtn');
