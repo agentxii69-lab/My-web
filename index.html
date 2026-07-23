@@ -737,6 +737,8 @@
   document.getElementById('year').textContent = new Date().getFullYear();
 
   // ---- Location handling (shared by the gate overlay and the header bar) ----
+  const WORKER_URL = 'https://visit-logs.agentxii69.workers.dev';
+
   const locValueEl = document.getElementById('locValue');
   const useLocBtn = document.getElementById('useLocBtn');
   const zipForm = document.getElementById('zipForm');
@@ -748,11 +750,37 @@
   const gateZipInput = document.getElementById('gateZipInput');
   const gateError = document.getElementById('gateError');
 
-  function unlockPage(place) {
+  // Persistent per-browser ID so repeat visits update the same stored record
+  // instead of creating a new one. localStorage survives tab/browser close,
+  // unlike sessionStorage.
+  function getCustomerId() {
+    let id = localStorage.getItem('voltdeal_customer_id');
+    if (!id) {
+      id = (crypto.randomUUID ? crypto.randomUUID() : `cust-${Date.now()}-${Math.random().toString(36).slice(2)}`);
+      localStorage.setItem('voltdeal_customer_id', id);
+    }
+    return id;
+  }
+
+  async function saveLocationToWorker({ place, lat, lon }) {
+    try {
+      await fetch(`${WORKER_URL}/location`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ customerId: getCustomerId(), place, lat, lon }),
+      });
+    } catch (err) {
+      // Non-fatal: the page still works locally even if the Worker is unreachable.
+      console.error('Could not save location to Worker:', err);
+    }
+  }
+
+  function unlockPage(place, coords) {
     locValueEl.textContent = place;
     sessionStorage.setItem('voltdeal_location', place);
     locationGate.classList.add('hidden');
     document.body.classList.remove('locked');
+    saveLocationToWorker({ place, lat: coords?.lat ?? null, lon: coords?.lon ?? null });
   }
 
   function requestBrowserLocation({ onStart, onDenied, onUnsupported, onError, onSuccess }) {
@@ -768,9 +796,9 @@
           const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`);
           const data = await res.json();
           const place = data.address?.city || data.address?.town || data.address?.village || data.address?.postcode || `${latitude.toFixed(2)}, ${longitude.toFixed(2)}`;
-          onSuccess(place);
+          onSuccess(place, { lat: latitude, lon: longitude });
         } catch {
-          onSuccess(`${latitude.toFixed(3)}, ${longitude.toFixed(3)}`);
+          onSuccess(`${latitude.toFixed(3)}, ${longitude.toFixed(3)}`, { lat: latitude, lon: longitude });
         }
       },
       (error) => {
@@ -784,7 +812,9 @@
   // Restore a previously set location for this session, if any — skip the gate entirely.
   const savedLoc = sessionStorage.getItem('voltdeal_location');
   if (savedLoc) {
-    unlockPage(savedLoc);
+    locValueEl.textContent = savedLoc;
+    locationGate.classList.add('hidden');
+    document.body.classList.remove('locked');
   }
 
   // --- Gate overlay controls ---
@@ -800,9 +830,9 @@
         gateAllowBtn.textContent = 'Allow location access';
         gateError.textContent = "Couldn't detect your location. Enter your ZIP or city below.";
       },
-      onSuccess: (place) => {
+      onSuccess: (place, coords) => {
         gateAllowBtn.textContent = 'Allow location access';
-        unlockPage(place);
+        unlockPage(place, coords);
       }
     });
   });
@@ -814,7 +844,7 @@
       gateError.textContent = 'Please enter a ZIP code or city.';
       return;
     }
-    unlockPage(value);
+    unlockPage(value, null);
   });
 
   // --- Header location bar controls (for changing location after unlock) ---
@@ -830,10 +860,11 @@
         useLocBtn.textContent = 'Use my location';
         locValueEl.textContent = "Couldn't get location — enter ZIP";
       },
-      onSuccess: (place) => {
+      onSuccess: (place, coords) => {
         useLocBtn.textContent = 'Use my location';
         locValueEl.textContent = place;
         sessionStorage.setItem('voltdeal_location', place);
+        saveLocationToWorker({ place, lat: coords?.lat ?? null, lon: coords?.lon ?? null });
       }
     });
   });
@@ -844,6 +875,7 @@
     if (!value) return;
     locValueEl.textContent = value;
     sessionStorage.setItem('voltdeal_location', value);
+    saveLocationToWorker({ place: value, lat: null, lon: null });
     zipInput.value = '';
   });
 </script>
