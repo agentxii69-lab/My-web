@@ -34,6 +34,72 @@
 
   a { color: inherit; }
 
+  body.locked { overflow: hidden; }
+  body.locked > *:not(#locationGate) { filter: blur(6px); pointer-events: none; user-select: none; }
+
+  #locationGate {
+    position: fixed;
+    inset: 0;
+    background: rgba(6, 10, 20, 0.88);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    padding: 1.5rem;
+  }
+  #locationGate.hidden { display: none; }
+
+  .gate-card {
+    background: var(--bg-panel);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 2rem;
+    max-width: 380px;
+    width: 100%;
+    text-align: center;
+    box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+  }
+  .gate-card .gate-icon { font-size: 2.2rem; margin-bottom: 0.6rem; }
+  .gate-card h2 { font-size: 1.35rem; margin: 0 0 0.5rem; }
+  .gate-card p { color: var(--muted); font-size: 0.92rem; margin: 0 0 1.5rem; }
+
+  .gate-card .btn-primary { width: 100%; margin-bottom: 0.9rem; }
+
+  .gate-divider {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    color: var(--muted);
+    font-size: 0.8rem;
+    margin: 0.9rem 0;
+  }
+  .gate-divider::before, .gate-divider::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--line);
+  }
+
+  .gate-card form { display: flex; gap: 0.5rem; }
+  .gate-card input {
+    flex: 1;
+    background: var(--bg);
+    border: 1px solid var(--line);
+    color: var(--text);
+    padding: 0.65rem 0.8rem;
+    border-radius: 6px;
+    font-size: 0.95rem;
+    min-width: 0;
+  }
+  .gate-card input:focus-visible, .gate-card button:focus-visible { outline: 2px solid var(--yellow); outline-offset: 2px; }
+
+  .gate-error {
+    color: var(--red);
+    font-size: 0.85rem;
+    margin-top: 0.9rem;
+    min-height: 1.1em;
+  }
+
   .wrap {
     max-width: 1100px;
     margin: 0 auto;
@@ -365,7 +431,7 @@
     font-size: 0.85rem;
     width: 130px;
   }
-  .location-bar .set-btn {
+  .location-bar .set-btn, .gate-card .set-btn {
     background: transparent;
     border: 1px solid var(--yellow);
     color: var(--yellow);
@@ -375,7 +441,7 @@
     font-weight: 600;
     cursor: pointer;
   }
-  .location-bar .set-btn:hover { background: var(--yellow); color: #1a1400; }
+  .location-bar .set-btn:hover, .gate-card .set-btn:hover { background: var(--yellow); color: #1a1400; }
   .location-bar input:focus-visible, .location-bar button:focus-visible { outline: 2px solid var(--yellow); outline-offset: 2px; }
 
   footer { padding: 2.5rem 1.5rem; text-align: center; color: var(--muted); font-size: 0.85rem; }
@@ -390,7 +456,22 @@
   }
 </style>
 </head>
-<body>
+<body class="locked">
+
+<div id="locationGate" role="dialog" aria-modal="true" aria-labelledby="gateTitle">
+  <div class="gate-card">
+    <div class="gate-icon">📍</div>
+    <h2 id="gateTitle">Where should we deliver?</h2>
+    <p>We need your location to show accurate prices, stock, and shipping times in your area.</p>
+    <button class="btn-primary" id="gateAllowBtn" type="button">Allow location access</button>
+    <div class="gate-divider">or enter it manually</div>
+    <form id="gateZipForm">
+      <input type="text" id="gateZipInput" placeholder="ZIP or city" required autocomplete="postal-code">
+      <button class="set-btn" type="submit">Set</button>
+    </form>
+    <div class="gate-error" id="gateError"></div>
+  </div>
+</div>
 
 <div class="topbar">FREE SHIPPING OVER $50 &nbsp;·&nbsp; PRICE MATCH GUARANTEE &nbsp;·&nbsp; 30-DAY RETURNS</div>
 
@@ -655,49 +736,106 @@
 
   document.getElementById('year').textContent = new Date().getFullYear();
 
-  // ---- Location handling ----
+  // ---- Location handling (shared by the gate overlay and the header bar) ----
   const locValueEl = document.getElementById('locValue');
   const useLocBtn = document.getElementById('useLocBtn');
   const zipForm = document.getElementById('zipForm');
   const zipInput = document.getElementById('zipInput');
 
-  // Restore a previously set location for this session, if any
-  const savedLoc = sessionStorage.getItem('voltdeal_location');
-  if (savedLoc) locValueEl.textContent = savedLoc;
+  const locationGate = document.getElementById('locationGate');
+  const gateAllowBtn = document.getElementById('gateAllowBtn');
+  const gateZipForm = document.getElementById('gateZipForm');
+  const gateZipInput = document.getElementById('gateZipInput');
+  const gateError = document.getElementById('gateError');
 
-  useLocBtn.addEventListener('click', () => {
+  function unlockPage(place) {
+    locValueEl.textContent = place;
+    sessionStorage.setItem('voltdeal_location', place);
+    locationGate.classList.add('hidden');
+    document.body.classList.remove('locked');
+  }
+
+  function requestBrowserLocation({ onStart, onDenied, onUnsupported, onError, onSuccess }) {
     if (!navigator.geolocation) {
-      locValueEl.textContent = 'Location not supported — enter ZIP';
+      onUnsupported();
       return;
     }
-    useLocBtn.textContent = 'Locating…';
+    onStart();
     navigator.geolocation.getCurrentPosition(
       async (position) => {
         const { latitude, longitude } = position.coords;
         try {
-          // Reverse-geocode to a human-readable place name.
           const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`);
           const data = await res.json();
           const place = data.address?.city || data.address?.town || data.address?.village || data.address?.postcode || `${latitude.toFixed(2)}, ${longitude.toFixed(2)}`;
-          locValueEl.textContent = place;
-          sessionStorage.setItem('voltdeal_location', place);
+          onSuccess(place);
         } catch {
-          const coordStr = `${latitude.toFixed(3)}, ${longitude.toFixed(3)}`;
-          locValueEl.textContent = coordStr;
-          sessionStorage.setItem('voltdeal_location', coordStr);
+          onSuccess(`${latitude.toFixed(3)}, ${longitude.toFixed(3)}`);
         }
-        useLocBtn.textContent = 'Use my location';
       },
       (error) => {
-        useLocBtn.textContent = 'Use my location';
-        if (error.code === error.PERMISSION_DENIED) {
-          locValueEl.textContent = 'Permission denied — enter ZIP below';
-        } else {
-          locValueEl.textContent = 'Couldn\'t get location — enter ZIP';
-        }
+        if (error.code === error.PERMISSION_DENIED) onDenied();
+        else onError();
       },
       { enableHighAccuracy: true, timeout: 10000 }
     );
+  }
+
+  // Restore a previously set location for this session, if any — skip the gate entirely.
+  const savedLoc = sessionStorage.getItem('voltdeal_location');
+  if (savedLoc) {
+    unlockPage(savedLoc);
+  }
+
+  // --- Gate overlay controls ---
+  gateAllowBtn.addEventListener('click', () => {
+    requestBrowserLocation({
+      onStart: () => { gateAllowBtn.textContent = 'Locating…'; gateError.textContent = ''; },
+      onUnsupported: () => { gateError.textContent = "Your browser doesn't support location. Enter it manually below."; },
+      onDenied: () => {
+        gateAllowBtn.textContent = 'Allow location access';
+        gateError.textContent = 'Permission denied. Enter your ZIP or city below to continue.';
+      },
+      onError: () => {
+        gateAllowBtn.textContent = 'Allow location access';
+        gateError.textContent = "Couldn't detect your location. Enter your ZIP or city below.";
+      },
+      onSuccess: (place) => {
+        gateAllowBtn.textContent = 'Allow location access';
+        unlockPage(place);
+      }
+    });
+  });
+
+  gateZipForm.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const value = gateZipInput.value.trim();
+    if (!value) {
+      gateError.textContent = 'Please enter a ZIP code or city.';
+      return;
+    }
+    unlockPage(value);
+  });
+
+  // --- Header location bar controls (for changing location after unlock) ---
+  useLocBtn.addEventListener('click', () => {
+    requestBrowserLocation({
+      onStart: () => { useLocBtn.textContent = 'Locating…'; },
+      onUnsupported: () => { locValueEl.textContent = 'Location not supported — enter ZIP'; },
+      onDenied: () => {
+        useLocBtn.textContent = 'Use my location';
+        locValueEl.textContent = 'Permission denied — enter ZIP below';
+      },
+      onError: () => {
+        useLocBtn.textContent = 'Use my location';
+        locValueEl.textContent = "Couldn't get location — enter ZIP";
+      },
+      onSuccess: (place) => {
+        useLocBtn.textContent = 'Use my location';
+        locValueEl.textContent = place;
+        sessionStorage.setItem('voltdeal_location', place);
+      }
+    });
   });
 
   zipForm.addEventListener('submit', (e) => {
